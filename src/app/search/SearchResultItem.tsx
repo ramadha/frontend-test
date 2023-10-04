@@ -1,16 +1,10 @@
-import { movieGenres } from "@/clients/tmdb";
-import {
-  Box,
-  Card,
-  CardActions,
-  CardContent,
-  CardHeader,
-  Chip,
-  CircularProgress,
-  Divider,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { movieGenres, tvGenres } from "@/clients/tmdb";
+import { PeopleCardView } from "./resultViews/PeopleCardView";
+import { MovieTvCardView } from "./resultViews/MovieTvCardView";
+
+interface KnownFor {
+  title: string;
+}
 
 export const SearchResultItem = async ({
   title = "",
@@ -19,6 +13,10 @@ export const SearchResultItem = async ({
   release_date,
   vote_average,
   genre_ids,
+  name = "",
+  known_for_department = "",
+  first_air_date,
+  known_for,
 }: {
   backdrop_path: string;
   id: number;
@@ -33,80 +31,49 @@ export const SearchResultItem = async ({
   release_date: string;
   vote_average: number;
   vote_count: number;
+  name: string;
+  known_for_department: string;
+  first_air_date: string;
+  known_for: Array<KnownFor>;
 }) => {
-  if (media_type !== "movie") {
-    return <Typography>Search result is not a movie</Typography>;
+
+
+  if (media_type === 'movie') {
+    const { genres } = await movieGenres();
+
+    const genreNames = genre_ids.map((genreId) => {
+      const { name } =
+        genres.find((currentGenre) => currentGenre.id === genreId) ?? {};
+      return name!;
+    });
+
+    return (
+      <MovieTvCardView title={title} cardLabel={'Movie'} date={release_date} voteAverage={vote_average} overview={overview} genreNames={genreNames} />
+    );
   }
 
-  const { genres } = await movieGenres();
+  if (media_type === 'person') {
+    const knownForItems = known_for.map((item) => {
+      return item.title;
+    });
 
-  const genreNames = genre_ids.map((genreId) => {
-    const { name } =
-      genres.find((currentGenre) => currentGenre.id === genreId) ?? {};
-    return name;
-  });
+    return (
+      <PeopleCardView peopleName={name} knownForDepartment={known_for_department} knownForItems={knownForItems} />
+    );
+  }
 
-  return (
-    <Card variant="outlined" sx={{ borderRadius: 2 }}>
-      <CardHeader
-        title={<Typography variant="h5">{title}</Typography>}
-        subheader={
-          <Typography variant="body2" color="text.secondary">
-            {new Date(release_date).toLocaleDateString()}
-          </Typography>
-        }
-        sx={{
-          flexDirection: "row-reverse",
-        }}
-        avatar={
-          <Box sx={{ position: "relative", display: "inline-flex" }}>
-            <CircularProgress
-              variant="determinate"
-              value={vote_average * 10}
-              color="primary"
-              thickness={4}
-            />
-            <Box
-              sx={{
-                top: 0,
-                left: 0,
-                bottom: 0,
-                right: 0,
-                position: "absolute",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography variant="caption" fontWeight={600} component="div">
-                {vote_average.toFixed(1)}
-              </Typography>
-            </Box>
-          </Box>
-        }
-      />
-      <CardContent>{overview}</CardContent>
-      <CardContent>
-        <Stack direction="row" justifyContent="space-between">
-          <Chip label="Movie" variant="outlined" color="primary" />
-          <Stack
-            divider={<Divider orientation="vertical" />}
-            direction="row"
-            spacing={1}
-            alignItems="center"
-          >
-            {genreNames.map((genreName) => (
-              <Typography
-                variant="body2"
-                component="div"
-                color="text.secondary"
-              >
-                {genreName}
-              </Typography>
-            ))}
-          </Stack>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
+  if (media_type === 'tv') {
+    const { genres } = await tvGenres();
+
+    const genreNames = genre_ids.map((genreId) => {
+      const { name } =
+        genres.find((currentGenre) => currentGenre.id === genreId) ?? {};
+      return name!;
+    });
+
+    return (
+      <MovieTvCardView title={name} cardLabel={'TV Show'} date={first_air_date} voteAverage={vote_average} overview={overview} genreNames={genreNames} />
+    );
+  }
+
 };
